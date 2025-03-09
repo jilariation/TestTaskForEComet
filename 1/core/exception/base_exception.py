@@ -4,7 +4,7 @@ import typing
 class BaseAppException(Exception):
     def __init__(
         self,
-        message: str = "Произошла ошибка в приложении",
+        message: str = "An error occurred in the application",
         code: str = "INTERNAL_ERROR",
         status_code: int = 500,
         details: typing.Optional[dict] = None

@@ -4,7 +4,7 @@ from core.exception import base_exception
 class DatabaseConnectionError(base_exception.BaseAppException):
     def __init__(
         self,
-        message: str = "Ошибка подключения к базе данных",
+        message: str = "Database connection error",
         details: dict = None
     ):
         super().__init__(

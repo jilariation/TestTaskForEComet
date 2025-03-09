@@ -28,21 +28,21 @@ class MultiLoopPool:
         return self._pools[asyncio.get_event_loop()]
 
     async def connect(self) -> asyncpg.Pool:
-        self._logger.info("Подключение к базе данных")
+        self._logger.info("Connecting to the database")
         return await self._get_pool()
 
     async def acquire(self, *, timeout=None):
         pool = await self._get_pool()
-        self._logger.debug("Получение соединения из пула")
+        self._logger.debug("Acquiring connection from pool")
         return await pool.acquire(timeout=timeout)
 
     async def release(self, conn):
         pool = await self._get_pool()
-        self._logger.debug("Возврат соединения в пул")
+        self._logger.debug("Releasing connection back to pool")
         await pool.release(conn)
 
     async def close(self):
-        self._logger.info("Закрытие всех пулов подключений")
+        self._logger.info("Closing all connection pools")
         pools = list(self._pools.values())
         self._pools.clear()
         for pool in pools:
@@ -53,18 +53,18 @@ class MultiLoopPool:
         rv = self._pools.get(loop)
         if rv is None:
             try:
-                self._logger.debug(f"Создание нового пула для цикла {id(loop)}")
+                self._logger.debug(f"Creating new pool for loop {id(loop)}")
                 rv = self._pools[loop] = await asyncpg.create_pool(**self.kwargs)
             except Exception as e:
-                self._logger.error(f"Ошибка создания пула: {str(e)}")
+                self._logger.error(f"Pool creation error: {str(e)}")
                 raise DatabaseConnectionError(
-                    message=f"Не удалось создать пул подключений: {str(e)}",
+                    message=f"Failed to create connection pool: {str(e)}",
                     details={"host": self.kwargs.get("host"), "db": self.kwargs.get("database")}
                 ) from e
         return rv
 
     async def close_for_thread(self):
-        self._logger.info("Закрытие пула для текущего потока")
+        self._logger.info("Closing pool for current thread")
         await (await self._get_pool()).close()
 
 
@@ -113,11 +113,11 @@ class DatabaseClient:
             pool = self.get_pool()
             await pool.connect()
             self._logger.info(
-                f"Успешное подключение к базе данных {self._settings.database.postgres.host}:{self._settings.database.postgres.port}/{self._settings.database.postgres.db}")
+                f"Successfully connected to the database {self._settings.database.postgres.host}:{self._settings.database.postgres.port}/{self._settings.database.postgres.db}")
         except Exception as e:
-            self._logger.error(f"Ошибка при подключении к базе данных: {str(e)}")
+            self._logger.error(f"Database connection error: {str(e)}")
             raise DatabaseConnectionError(
-                message="Ошибка при подключении к базе данных",
+                message="Database connection error",
                 details={"error": str(e)}
             ) from e
 
@@ -125,10 +125,10 @@ class DatabaseClient:
         try:
             if self._pool:
                 await self._pool.close()
-                self._logger.info("Успешное отключение от базы данных")
+                self._logger.info("Successfully disconnected from the database")
         except Exception as e:
-            self._logger.error(f"Ошибка при отключении от базы данных: {str(e)}")
+            self._logger.error(f"Database disconnection error: {str(e)}")
             raise DatabaseConnectionError(
-                message="Ошибка при отключении от базы данных",
+                message="Database disconnection error",
                 details={"error": str(e)}
             ) from e

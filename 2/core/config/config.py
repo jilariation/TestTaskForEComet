@@ -5,16 +5,16 @@ from core.config import logger
 
 
 class GithubSettings(BaseModel):
-    access_token: str = Field("", description="Токен доступа к GitHub API")
-    max_concurrent_requests: int = Field(10, description="Максимальное количество одновременных запросов")
-    requests_per_second: int = Field(5, description="Ограничение запросов в секунду")
-    top_repos_limit: int = Field(100, description="Лимит топовых репозиториев")
-    commits_since_days: int = Field(1, description="За сколько дней назад искать коммиты")
+    access_token: str = Field("", description="GitHub API access token")
+    max_concurrent_requests: int = Field(10, description="Maximum number of concurrent requests")
+    requests_per_second: int = Field(5, description="Rate limit for requests per second")
+    top_repos_limit: int = Field(100, description="Limit for top repositories")
+    commits_since_days: int = Field(1, description="Search for commits from how many days ago")
 
 
 class Settings(BaseSettings):
-    project_name: str = Field("e-Comet", description="Название проекта")
-    debug: bool = Field(False, description="Режим отладки")
+    project_name: str = Field("e-Comet", description="Project name")
+    debug: bool = Field(False, description="Debug mode")
     logging: logger.LoggingSettings = Field(default_factory=logger.LoggingSettings)
 
     github: GithubSettings = Field(default_factory=GithubSettings)

@@ -19,12 +19,12 @@ def get_db_version(
 ):
     try:
         logger = get_logger()
-        logger.info("Запрос версии базы данных")
+        logger.info("Requesting database version")
         return conn.fetchval("SELECT version()")
     except Exception as e:
         logger = get_logger()
-        logger.error(f"Ошибка при получении версии БД: {str(e)}")
-        raise DatabaseConnectionError("Не удалось получить версию базы данных") from e
+        logger.error(f"Error while getting database version: {str(e)}")
+        raise DatabaseConnectionError("Failed to get database version") from e
 
 
 def register_routes(app: FastAPI, db_dependencies) -> None:
@@ -38,7 +38,7 @@ def register_routes(app: FastAPI, db_dependencies) -> None:
         return await get_db_version(conn)
 
     app.include_router(router)
-    logger.info("Маршруты API зарегистрированы")
+    logger.info("API routes registered")
 
 
 def register_exception_handlers(app: FastAPI) -> None:
@@ -46,22 +46,22 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(BaseAppException)
     async def base_exception_handler(request: Request, exc: BaseAppException):
-        logger.error(f"Обработано исключение: {exc.code} - {exc.message}")
+        logger.error(f"Handled exception: {exc.code} - {exc.message}")
         return JSONResponse(
             status_code=exc.status_code,
             content={"error": exc.message, "code": exc.code, "details": exc.details},
         )
 
-    logger.info("Обработчики исключений зарегистрированы")
+    logger.info("Exception handlers registered")
 
 
 async def handle_startup(settings, logger, db_client):
-    logger.info(f"Запуск приложения {settings.project_name}")
+    logger.info(f"Starting application {settings.project_name}")
     await db_client.connect()
 
 
 async def handle_shutdown(settings, logger, db_client):
-    logger.info(f"Остановка приложения {settings.project_name}")
+    logger.info(f"Stopping application {settings.project_name}")
     await db_client.disconnect()
 
 
@@ -96,7 +96,7 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
     register_lifecycle_events(app, db_client)
 
-    logger.info(f"Приложение {settings.project_name} успешно создано")
+    logger.info(f"Application {settings.project_name} successfully created")
     return app
 
 

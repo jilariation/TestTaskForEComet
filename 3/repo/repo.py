@@ -68,18 +68,18 @@ class ClickHouseRepository:
                     current_batch = batch.copy()
                     self._batch_queue[table_name] = []
 
-                    self.log.debug(f"Запись пакета из {len(current_batch)} записей в таблицу {table_name}")
+                    self.log.debug(f"Writing batch of {len(current_batch)} records to table {table_name}")
                     await self.client.execute(f"INSERT INTO {table_name} JSON", current_batch)
-                    self.log.debug(f"Успешно записано {len(current_batch)} записей в таблицу {table_name}")
+                    self.log.debug(f"Successfully wrote {len(current_batch)} records to table {table_name}")
                 except Exception as e:
-                    self.log.error(f"Ошибка при записи в таблицу {table_name}: {e}", exc_info=True)
+                    self.log.error(f"Error writing to table {table_name}: {e}", exc_info=True)
                     self._batch_queue[table_name].extend(current_batch)
 
                     if len(self._batch_queue[table_name]) > self.settings.batch_size * 3:
                         dropped_count = len(self._batch_queue[table_name]) - self.settings.batch_size
                         self._batch_queue[table_name] = self._batch_queue[table_name][-self.settings.batch_size:]
                         self.log.error(
-                            f"Очередь для таблицы {table_name} переполнена. Отброшено {dropped_count} записей")
+                            f"Queue for table {table_name} is overflowing. Dropped {dropped_count} records")
 
     async def flush_all(self) -> None:
         await self._flush_batch()
@@ -92,7 +92,7 @@ class ClickHouseRepository:
         if settings is None:
             settings = getattr(app_settings, 'clickhouse', ClickHouseSettings())
 
-        log.info(f"Инициализация подключения к ClickHouse: "
+        log.info(f"Initializing connection to ClickHouse: "
                  f"host={settings.host}:{settings.port}, "
                  f"db={settings.database}, "
                  f"batch_size={settings.batch_size}")
@@ -108,11 +108,11 @@ class ClickHouseRepository:
             )
 
             await client.execute("SELECT 1")
-            log.info("Подключение к ClickHouse успешно установлено")
+            log.info("Successfully connected to ClickHouse")
 
             return cls(client, settings, log)
         except Exception as e:
-            log.error(f"Ошибка при инициализации подключения к ClickHouse: {e}", exc_info=True)
+            log.error(f"Error initializing connection to ClickHouse: {e}", exc_info=True)
             raise
 
     async def close(self) -> None:
@@ -122,6 +122,6 @@ class ClickHouseRepository:
             if hasattr(self.client, 'session') and not self.client.session.closed:
                 await self.client.session.close()
 
-            self.log.info("Соединение с ClickHouse закрыто")
+            self.log.info("Connection to ClickHouse closed")
         except Exception as e:
-            self.log.error(f"Ошибка при закрытии соединения с ClickHouse: {e}", exc_info=True)
+            self.log.error(f"Error closing connection to ClickHouse: {e}", exc_info=True)

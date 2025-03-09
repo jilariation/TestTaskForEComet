@@ -20,14 +20,14 @@ class DatabaseDependencies:
             pool = self._db_client.get_pool()
             connection = await pool.acquire()
             try:
-                self._logger.debug("Получено соединение с базой данных")
+                self._logger.debug("Database connection acquired")
                 yield connection
-                self._logger.debug("Соединение с базой данных возвращено в пул")
+                self._logger.debug("Database connection returned to pool")
             finally:
                 await pool.release(connection)
         except Exception as e:
-            self._logger.error(f"Ошибка при работе с подключением к базе данных: {str(e)}")
-            raise DatabaseConnectionError("Ошибка при работе с подключением к базе данных") from e
+            self._logger.error(f"Error while working with database connection: {str(e)}")
+            raise DatabaseConnectionError("Error while working with database connection") from e
 
 
 def get_db_dependencies(db_client: pool.DatabaseClient, logger: logging.Logger) -> DatabaseDependencies:

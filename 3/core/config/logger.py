@@ -15,7 +15,7 @@ class LoggingSettings(BaseSettings):
     @classmethod
     def validate_level(cls, v: str) -> str:
         if v not in ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
-            raise ValueError(f"Неверный уровень логирования: {v}")
+            raise ValueError(f"Invalid logging level: {v}")
         return v
 
 

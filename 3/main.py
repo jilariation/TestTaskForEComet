@@ -71,7 +71,7 @@ class GithubReposScrapper:
         self._rate_limiter = RateLimiter(self.settings.requests_per_second)
         self._semaphore = asyncio.Semaphore(self.settings.max_concurrent_requests)
 
-        self.log.info(f"Инициализирован GithubReposScrapper с настройками: "
+        self.log.info(f"Initialized GithubReposScrapper with settings: "
                       f"MCR={self.settings.max_concurrent_requests}, "
                       f"RPS={self.settings.requests_per_second}, "
                       f"limit={self.settings.top_repos_limit}, "
@@ -84,12 +84,12 @@ class GithubReposScrapper:
         async with self._semaphore:
             try:
                 url = f"{GITHUB_API_BASE_URL}/{endpoint}"
-                self.log.debug(f"Выполнение запроса: {method} {url} с параметрами: {params}")
+                self.log.debug(f"Executing request: {method} {url} with params: {params}")
 
                 async with self._session.request(method, url, params=params) as response:
                     if response.status >= 400:
                         error_text = await response.text()
-                        self.log.error(f"Ошибка API GitHub: {response.status} - {error_text}")
+                        self.log.error(f"GitHub API error: {response.status} - {error_text}")
                         response.raise_for_status()
 
                     return await response.json()
@@ -100,20 +100,20 @@ class GithubReposScrapper:
                     wait_time = max(0, reset_time - current_time) + 1
 
                     if wait_time > 0 and wait_time < 3600:
-                        self.log.warning(f"Превышен лимит запросов к GitHub API. Ожидание {wait_time} секунд.")
+                        self.log.warning(f"GitHub API rate limit exceeded. Waiting {wait_time} seconds.")
                         await asyncio.sleep(wait_time)
                         return await self._make_request(endpoint, method, params)
 
-                self.log.error(f"Ошибка запроса: {e}", exc_info=True)
+                self.log.error(f"Request error: {e}", exc_info=True)
                 raise
             except aiohttp.ClientError as e:
-                self.log.error(f"Ошибка клиента: {e}", exc_info=True)
+                self.log.error(f"Client error: {e}", exc_info=True)
                 raise
             except asyncio.CancelledError:
-                self.log.warning("Запрос отменен")
+                self.log.warning("Request cancelled")
                 raise
             except Exception as e:
-                self.log.error(f"Неожиданная ошибка при выполнении запроса: {e}", exc_info=True)
+                self.log.error(f"Unexpected error during request: {e}", exc_info=True)
                 raise
 
     async def _get_top_repositories(self, limit: int = 100) -> list[dict[str, typing.Any]]:
@@ -125,7 +125,7 @@ class GithubReposScrapper:
             )
             return data.get("items", [])
         except Exception as e:
-            self.log.error(f"Не удалось получить список топовых репозиториев: {e}")
+            self.log.error(f"Failed to retrieve top repositories: {e}")
             return []
 
     async def _get_repository_commits(self, owner: str, repo: str) -> list[dict[str, typing.Any]]:
@@ -138,7 +138,7 @@ class GithubReposScrapper:
                 params={"since": since_date, "per_page": 100}
             )
         except Exception as e:
-            self.log.warning(f"Не удалось получить коммиты для репозитория {owner}/{repo}: {e}")
+            self.log.warning(f"Failed to get commits for repository {owner}/{repo}: {e}")
             return []
 
     async def _process_repository(self, repo_data: dict[str, typing.Any], position: int) -> Repository:
@@ -146,7 +146,7 @@ class GithubReposScrapper:
         name = repo_data.get("name", "")
 
         log_context = LoggerAdapter(self.log.logger, {**self.log.extra, "repo": f"{owner}/{name}"})
-        log_context.debug(f"Обработка репозитория #{position}")
+        log_context.debug(f"Processing repository #{position}")
 
         commits = await self._get_repository_commits(owner, name)
 
@@ -166,7 +166,7 @@ class GithubReposScrapper:
             for author, count in author_commits.items()
         ]
 
-        log_context.debug(f"Найдено {len(authors_commits_list)} авторов с коммитами")
+        log_context.debug(f"Found {len(authors_commits_list)} authors with commits")
 
         return Repository(
             name=name,
@@ -184,10 +184,10 @@ class GithubReposScrapper:
             top_repos = await self._get_top_repositories(limit=self.settings.top_repos_limit)
 
             if not top_repos:
-                self.log.warning("Не найдено репозиториев")
+                self.log.warning("No repositories found")
                 return []
 
-            self.log.info(f"Получено {len(top_repos)} топовых репозиториев. Обработка...")
+            self.log.info(f"Received {len(top_repos)} top repositories. Processing...")
 
             tasks = [
                 self._process_repository(repo, position)
@@ -199,23 +199,23 @@ class GithubReposScrapper:
             valid_repositories = []
             for i, result in enumerate(repositories):
                 if isinstance(result, Exception):
-                    self.log.error(f"Ошибка при обработке репозитория {i + 1}: {result}", exc_info=True)
+                    self.log.error(f"Error processing repository {i + 1}: {result}", exc_info=True)
                 else:
                     valid_repositories.append(result)
 
-            self.log.info(f"Успешно обработано {len(valid_repositories)} из {len(top_repos)} репозиториев")
+            self.log.info(f"Successfully processed {len(valid_repositories)} out of {len(top_repos)} repositories")
             return valid_repositories
 
         except Exception as e:
-            self.log.error(f"Произошла ошибка при получении репозиториев: {e}", exc_info=True)
+            self.log.error(f"Error occurred while retrieving repositories: {e}", exc_info=True)
             return []
 
     async def close(self):
         try:
             await self._session.close()
-            self.log.info("Сессия HTTP закрыта")
+            self.log.info("HTTP session closed")
         except Exception as e:
-            self.log.error(f"Ошибка при закрытии сессии: {e}", exc_info=True)
+            self.log.error(f"Error closing session: {e}", exc_info=True)
 
 
 async def process_repositories(
@@ -223,7 +223,7 @@ async def process_repositories(
         ch_repo: ClickHouseRepository,
         log: LoggerAdapter
 ) -> None:
-    log.info(f"Обработка и сохранение {len(repositories)} репозиториев")
+    log.info(f"Processing and saving {len(repositories)} repositories")
 
     total_saved = 0
     try:
@@ -232,17 +232,17 @@ async def process_repositories(
                 await ch_repo.save_repository(repo)
                 total_saved += 1
 
-                # Логируем только каждый десятый репозиторий, чтобы не перегружать логи
+                # Log only every tenth repository to avoid overwhelming the logs
                 if total_saved % 10 == 0 or total_saved == 1:
-                    log.info(f"Сохранено {total_saved} из {len(repositories)} репозиториев")
+                    log.info(f"Saved {total_saved} out of {len(repositories)} repositories")
             except Exception as e:
-                log.error(f"Ошибка при сохранении репозитория {repo.owner}/{repo.name}: {e}", exc_info=True)
+                log.error(f"Error saving repository {repo.owner}/{repo.name}: {e}", exc_info=True)
 
         await ch_repo.flush_all()
-        log.info(f"Всего успешно сохранено {total_saved} из {len(repositories)} репозиториев")
+        log.info(f"Total successfully saved {total_saved} out of {len(repositories)} repositories")
 
     except Exception as e:
-        log.error(f"Произошла ошибка при обработке репозиториев: {e}", exc_info=True)
+        log.error(f"Error occurred while processing repositories: {e}", exc_info=True)
 
 
 async def main() -> None:
@@ -251,12 +251,12 @@ async def main() -> None:
     root_logger = get_logger()
     log = LoggerAdapter(root_logger, {"component": "main"})
 
-    log.info(f"Запуск приложения {settings.project_name} в режиме {'отладки' if settings.debug else 'продакшн'}")
+    log.info(f"Starting application {settings.project_name} in {'debug' if settings.debug else 'production'} mode")
 
     try:
         github_token = settings.github.access_token
         if not github_token:
-            log.error("Токен доступа GitHub не найден. Добавьте GITHUB__ACCESS_TOKEN в файл .env")
+            log.error("GitHub access token not found. Add GITHUB__ACCESS_TOKEN in .env file")
             return
 
         async with aiohttp.AsyncExitStack() as stack:
@@ -270,25 +270,25 @@ async def main() -> None:
                 ch_repo = await ClickHouseRepository.create(settings.clickhouse)
                 stack.push_async_callback(ch_repo.close)
             except Exception as e:
-                log.error(f"Не удалось инициализировать соединение с ClickHouse: {e}")
+                log.error(f"Failed to initialize connection to ClickHouse: {e}")
                 return
 
-            log.info("Получение списка репозиториев из GitHub...")
+            log.info("Retrieving repository list from GitHub...")
             repositories = await scrapper.get_repositories()
 
             if not repositories:
-                log.warning("Не удалось получить репозитории")
+                log.warning("Failed to retrieve repositories")
                 return
 
-            log.info(f"Успешно получено {len(repositories)} репозиториев")
+            log.info(f"Successfully retrieved {len(repositories)} repositories")
 
             await process_repositories(repositories, ch_repo, log)
 
     except Exception as e:
-        log.exception(f"Произошла ошибка: {e}")
+        log.exception(f"An error occurred: {e}")
         sys.exit(1)
 
-    log.info("Завершение работы приложения")
+    log.info("Shutting down application")
 
 
 if __name__ == "__main__":
