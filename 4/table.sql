@@ -33,3 +33,13 @@ VALUES ('2025-01-01 11:50:00', 1111111, 'платье', 100),
        ('2025-01-01 15:40:00', 1111111, 'платье', 113),
        ('2025-01-01 15:50:00', 1111111, 'платье', 115),
        ('2025-01-01 16:00:00', 1111111, 'платье', 115);
+
+select phrase, groupArray((toHour(dt), views_diff)) as views_by_hour
+from (
+    select phrase, dt, views - neighbor(views, 1, views) as views_diff
+    from phrases_views
+    where campaign_id = 1111111
+      and toDate(dt) = today()
+    order by phrase, dt
+)
+group by phrase
